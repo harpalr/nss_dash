@@ -1,5 +1,6 @@
 <?php
 include("excelcolumnmapper.php");
+include("processStatus.php");
 
 $rowsArray = array(
     'main' => 'main',
@@ -52,16 +53,28 @@ function processImport($handle) {
     $memberDataArray = array();
 
     while (($data_set = fgetcsv($handle, 0, ",")) !== false) {
-//        if ($row_counter != 17) {
-//            $row_counter++;
-//            continue;
-//        }
-
+        
         if (validateMultipleReg($header_rec, $data_set)) {
-            $traverse = 0;
-            foreach ($excel_headers_old as $column_caption => $column) {
-                $findMember = false;
-                foreach ($membersArray as $member => $search_keyword) {
+            //echo "<script>updateStatics('Multiple Records')</script>";
+        } else {
+            //echo "SINGLE <br>";
+        } 
+        echo "<script>updateStatics('". ($row_counter + 1) ."')</script>";
+
+        $traverse = 0;
+        foreach ($excel_headers_old as $column_caption => $column) {
+            $findMember = false;
+            foreach ($membersArray as $member => $search_keyword) {
+                $pos = strpos($column_caption, $search_keyword);
+                if ($pos !== false) {
+                    $memberDataArray[$row_counter][$member][$column] = $data_set[$traverse];
+                    $findMember = true;
+                    continue;
+                }
+            }
+            //Patch Work
+            if (!$findMember) {
+                foreach ($patchArray as $member => $search_keyword) {
                     $pos = strpos($column_caption, $search_keyword);
                     if ($pos !== false) {
                         $memberDataArray[$row_counter][$member][$column] = $data_set[$traverse];
@@ -69,35 +82,19 @@ function processImport($handle) {
                         continue;
                     }
                 }
-                //Patch Work
-                if (!$findMember) {
-                    foreach ($patchArray as $member => $search_keyword) {
-                        $pos = strpos($column_caption, $search_keyword);
-                        if ($pos !== false) {
-                            $memberDataArray[$row_counter][$member][$column] = $data_set[$traverse];
-                            $findMember = true;
-                            continue;
-                        }
-                    }
-                }
-                if (!$findMember) {
-                    $memberDataArray[$row_counter]['main'][$column] = $data_set[$traverse];
-                }
-                $traverse++;
             }
-            $finalArray = mergeArray($memberDataArray[$row_counter]['main'], $memberDataArray[$row_counter]['primary']);
-            $memberDataArray[$row_counter]['main'] = refineDataRules($finalArray);
-            echo createSqlInsert($memberDataArray[$row_counter]);
-            echo "<br>";
-        } else {
-            //echo "NO";
+            if (!$findMember) {
+                $memberDataArray[$row_counter]['main'][$column] = $data_set[$traverse];
+            }
+            $traverse++;
         }
+        $finalArray = mergeArray($memberDataArray[$row_counter]['main'], $memberDataArray[$row_counter]['primary']);
+        $memberDataArray[$row_counter]['main'] = refineDataRules($finalArray);
+        createSqlInsert($memberDataArray[$row_counter]);
         $row_counter++;
-        echo "<br>";
     }
-    //echo createSqlInsert($memberDataArray);
     //echo "<pre>";
-    print_r($memberDataArray);
+    //print_r($memberDataArray);
 }
 
 //create insert sql
@@ -106,28 +103,35 @@ function createSqlInsert($dataArray) {
 
     $query = "INSERT INTO nss_registrations ";
     $query .= "(";
+    $cols = "";
     foreach ($columnsList as $col) {
-        $query .= "$col,";
+        $cols .= "$col,";
     }
-    $query .= ")";
+    $query .= substr($cols, 0, -1) . ")";
     $query .= " VALUES ";
     //Loop through each regeistration
     $query .= createInsertSetStatement($dataArray, $columnsList);
-    return substr($query, 0, -1);
+    return substr($query, 0, -5);
 }
 
 //create insert set rule
 function createInsertSetStatement($registration, $columnsList) {
     $str = "";
+    $sameDataColumns = array('ip', 'submission_id', 'submission_date', 'unique_id');
     foreach ($registration as $member => $memberData) {
         if (!empty($memberData['first_name'])) {
+            echo "<script>updateStatics('". ($memberData['first_name']) ."')</script>";
+
             $values = "(";
             foreach ($columnsList as $col) {
-                $field_data = (isset($memberData[$col]) ? $memberData[$col] : '');
+                if (in_array($col, $sameDataColumns)) {
+                    $field_data = $registration['main'][$col];
+                } else {
+                    $field_data = (isset($memberData[$col]) ? $memberData[$col] : '');
+                }
                 $values .= "'" . $field_data . "',";
             }
             $str .= substr($values, 0, -1) . "),<br>";
-
         }
     }
     return $str;
