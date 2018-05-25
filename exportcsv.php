@@ -1,6 +1,7 @@
 <?php
 include("excelcolumnmapper.php");
 include("processStatus.php");
+include("dbconnect.php");
 
 $rowsArray = array(
     'main' => 'main',
@@ -44,23 +45,17 @@ if (isset($_POST["submit"])) {
     $file = $_FILES['file']['tmp_name'];
     $handle = fopen($file, "r");
     processImport($handle);
+    $conn->close();
 }
 
 function processImport($handle) {
-    global $excel_headers_old, $membersArray, $patchArray;
+    global $excel_headers_old, $membersArray, $patchArray, $conn;
     $row_counter = 0;
     $header_rec = getHeaders($handle);
     $memberDataArray = array();
 
     while (($data_set = fgetcsv($handle, 0, ",")) !== false) {
-        
-        if (validateMultipleReg($header_rec, $data_set)) {
-            //echo "<script>updateStatics('Multiple Records')</script>";
-        } else {
-            //echo "SINGLE <br>";
-        } 
-        echo "<script>updateStatics('". ($row_counter + 1) ."')</script>";
-
+        echo "<script>updateStatics('" . ($row_counter + 1) . "')</script>";
         $traverse = 0;
         foreach ($excel_headers_old as $column_caption => $column) {
             $findMember = false;
@@ -89,12 +84,13 @@ function processImport($handle) {
             $traverse++;
         }
         $finalArray = mergeArray($memberDataArray[$row_counter]['main'], $memberDataArray[$row_counter]['primary']);
-        $memberDataArray[$row_counter]['main'] = refineDataRules($finalArray);
-        createSqlInsert($memberDataArray[$row_counter]);
+        $memberDataArray[$row_counter]['main'] = $finalArray;
+        $sql = createSqlInsert($memberDataArray[$row_counter]);
+        if ($conn->query($sql) !== true) {
+            echo "Error: " . $sql . "<br>" . $conn->error;
+        }
         $row_counter++;
     }
-    //echo "<pre>";
-    //print_r($memberDataArray);
 }
 
 //create insert sql
@@ -111,7 +107,7 @@ function createSqlInsert($dataArray) {
     $query .= " VALUES ";
     //Loop through each regeistration
     $query .= createInsertSetStatement($dataArray, $columnsList);
-    return substr($query, 0, -5);
+    return substr($query, 0, -1);
 }
 
 //create insert set rule
@@ -120,8 +116,8 @@ function createInsertSetStatement($registration, $columnsList) {
     $sameDataColumns = array('ip', 'submission_id', 'submission_date', 'unique_id');
     foreach ($registration as $member => $memberData) {
         if (!empty($memberData['first_name'])) {
-            echo "<script>updateStatics('". ($memberData['first_name']) ."')</script>";
-
+            $memberData = refineDataRules($memberData);
+            //echo "<script>updateStatics('" . ($memberData['first_name']) . "')</script>";
             $values = "(";
             foreach ($columnsList as $col) {
                 if (in_array($col, $sameDataColumns)) {
@@ -131,7 +127,7 @@ function createInsertSetStatement($registration, $columnsList) {
                 }
                 $values .= "'" . $field_data . "',";
             }
-            $str .= substr($values, 0, -1) . "),<br>";
+            $str .= substr($values, 0, -1) . "),";
         }
     }
     return $str;
@@ -151,10 +147,12 @@ function refineDataRules($finalArray) {
     foreach ($ruleColumns as $column) {
         switch ($column) {
             case 'ground_transportation':
-                $finalArray[$column] = (!empty($finalArray[$column]) ? "Yes" : "No");
+                if (isset($finalArray[$column]))
+                    $finalArray[$column] = (!empty($finalArray[$column]) ? "Yes" : "No");
                 break;
             case 'legal':
-                $finalArray[$column] = ((stripos($finalArray[$column], 'acknowledge') !== false) ? "Yes" : "No");
+                if (isset($finalArray[$column]))
+                    $finalArray[$column] = ((stripos($finalArray[$column], 'acknowledge') !== false) ? "Yes" : "No");
                 break;
         }
     }
