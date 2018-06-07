@@ -17,7 +17,7 @@ class all_registrations {
                 FROM nss_registrations reg
                 LEFT JOIN nss_registrations sub
                 ON reg.unique_id = sub.unique_id
-                GROUP BY reg.id LIMIT 4";
+                GROUP BY reg.id";
         $result = $this->_conn->query($sql);
         $this->total_records = $result->num_rows;
 

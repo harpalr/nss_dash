@@ -58,12 +58,7 @@ $data = $objReg->getAllRegistrants();
                                 <thead>
                                     <tr>
                                         <!--                                        submission_id
-                                                                                email
-                                                                                phone
-                                                                                age
-                                                                                gender
-                                                                                tshirt_size
-                                                                                additional_guests
+                                                                                
                                                                                 travel_arrangements
                                                                                 same_guest_itinerary
                                                                                 arrival_time
@@ -103,6 +98,12 @@ $data = $objReg->getAllRegistrants();
                                         <th>Last Name</th>
                                         <th>SNM Branch</th>
                                         <th>Country</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        <th>Age</th>
+                                        <th>Gender</th>
+                                        <th>T-Shirt Size</th>
+                                        <th>Guests</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -112,19 +113,14 @@ $data = $objReg->getAllRegistrants();
                                     $unique_id = 'not';
                                     
                                     foreach ($data as $key => $record) {
-                                        if ($unique_id != $record['unique_id']) {
-                                            echo ++$countRow." << NOT EQUAL = ".$record['total'];
-                                            echo "<br>";
-                                            $unique_id = $record['unique_id'];
-                                            $td = "<td rowspan='".$record['total']."'>".$record['unique_id']."</td>";
-                                            //$td = "<td >".$record['unique_id']."</td>";
-                                            //$td = "rowspan='" . $record['total'] . "'";
-                                        } else {
-                                            echo ++$countRow." << EQUAL";
-                                            echo "<br>";
-                                            //$td = "<td >".$record['unique_id']."</td>";
-                                            $td = "";
-                                        }
+//                                        if ($unique_id != $record['unique_id']) {
+//                                            $unique_id = $record['unique_id'];
+//                                            $td = "<td rowspan='".$record['total']."'>".$record['unique_id']."</td>";
+//                                        } else {
+//                                            $td = "<td style='display:none;'>".$record['unique_id']."</td>";
+//
+//                                        }
+                                        $td = "<td>".$record['unique_id']."</td>";
                                         ?>
                                         <tr>
                                             <?php echo $td; ?>
@@ -132,6 +128,12 @@ $data = $objReg->getAllRegistrants();
                                             <td><?php echo $record['last_name']; ?></td>
                                             <td><?php echo $record['snm_branch']; ?></td>
                                             <td><?php echo $record['country_of_residence']; ?></td>
+                                            <td><?php echo $record['email']; ?></td>
+                                            <td><?php echo $record['phone']; ?></td>
+                                            <td><?php echo $record['age']; ?></td>
+                                            <td><?php echo $record['gender']; ?></td>
+                                            <td><?php echo $record['tshirt_size']; ?></td>
+                                            <td><?php echo $record['additional_guests']; ?></td>
                                         </tr>
                                         <?php
                                     }

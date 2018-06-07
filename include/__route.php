@@ -13,13 +13,16 @@ class __route {
         
         switch ($this->request) {
             case 'all':
-                return "all_registrations";
+                return "reports/all_registrations.php";
+                break;
+            case 'login':
+                return "include/login.php";
                 break;
             case 'member':
                 return "member";
                 break;
             default:
-                return "all_registrations";
+                return "reports/all_registrations.phps";
                 break;
         }
     }
